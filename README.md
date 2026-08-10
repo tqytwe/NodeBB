@@ -1,30 +1,34 @@
 # Sub2API NodeBB 论坛
 
-Sub2API 平台论坛系统，基于 NodeBB 4.x，部署到 Zeabur。
+Sub2API 平台论坛系统，基于 NodeBB 4.x，部署到 Zeabur + Gateway 路径反代。
 
-## 主平台信息
+## 架构
 
-- **Zeabur 项目**: gmssh (sub2api-wortic)
-- **主域名**: jisudeng.com
-- **论坛域名**: community.jisudeng.com
+```
+浏览器
+   │
+   ▼ https://jisudeng.com/
+   │
+   Zeabur Gateway (PROXY_ROUTES)
+   │
+   ├── /community/*  → NodeBB 服务 (4567)
+   ├── /api/*       → 主平台 API
+   └── /*           → 主平台前端
+```
 
-## 数据库（已在 Zeabur 部署）
+**零新域名！复用 jisudeng.com！**
 
-- **MongoDB**: 47.85.37.23:32460 (Zeabur)
-- **Redis**: 47.85.37.23:31145 (Zeabur)
+## Zeabur 部署
 
-## 部署步骤
-
-### 1. 在 Zeabur 添加 NodeBB 服务
+### 1. 添加 NodeBB 服务（已完成）
 
 1. 项目 gmssh → **+ Add Service** → **GitHub**
 2. 选择仓库：`tqytwe/NodeBB`
 3. 选择分支：`main`
-4. Zeabur 自动构建（使用 Dockerfile）
 
-### 2. 配置环境变量
+### 2. 配置 NodeBB 环境变量
 
-在 NodeBB 服务 → **Variables** 添加：
+在 NodeBB 服务 → **Variables**：
 
 ```bash
 # 主平台地址
@@ -47,16 +51,28 @@ REDIS_PORT=31145
 REDIS_PASSWORD=D1462n5ombxqXY3AEGiT79a8hes0CpQZ
 ```
 
-### 3. 绑定域名
+### 3. 部署 Gateway 服务（新增）
 
-NodeBB 服务 → **Networking** → **Custom Domain** → `community.jisudeng.com`
+1. 项目 gmssh → **+ Add Service** → **Docker 镜像**
+2. 镜像：`ghcr.io/zeabur/gateway:latest`（或自建）
+3. 配置环境变量：
 
-### 4. 初始化
+```bash
+PROXY_ROUTES=[
+  {"prefix":"/community","target":"http://nodebb:4567"},
+  {"prefix":"/api","target":"http://sub2api-wortic:8080"},
+  {"prefix":"/","target":"http://sub2api-wortic:8080"}
+]
+PORT=3000
+```
 
-访问 `https://community.jisudeng.com` 完成初始化：
-- Admin username: `admin`
-- Admin email: `admin@jisudeng.com`
-- Admin password: `<强密码>`
+4. Gateway 服务 → **Networking** → 绑定域名 `jisudeng.com`
+
+### 4. 验证
+
+- 访问 https://jisudeng.com → 主平台
+- 访问 https://jisudeng.com/community → NodeBB 论坛
+- 访问 https://api.jisudeng.com/xxx → 主平台 API
 
 ## 自动部署
 
@@ -68,22 +84,12 @@ push 到 main → Zeabur 自动 rebuild。
 .
 ├── Dockerfile              # Zeabur 构建
 ├── package.json            # Node.js 项目元数据
-├── config.json             # NodeBB 配置
-├── loader.js               # 自定义启动器（处理环境变量）
+├── config.json             # NodeBB 配置 (subpath 模式)
+├── loader.js               # 自定义启动器
 ├── README.md               # 本文件
 ├── .env.example            # 环境变量示例
-├── .gitignore
 └── plugins/
     └── nodebb-plugin-sub2api-sso/
-        ├── plugin.json
-        ├── library.js
-        ├── webhook-handlers.js
-        ├── user-sync.js
-        ├── forum-payment.js
-        ├── static/lib/main.js
-        ├── static/styles.less
-        ├── templates/client/header.tpl
-        └── languages/{zh-CN,en-GB}.json
 ```
 
 ## License

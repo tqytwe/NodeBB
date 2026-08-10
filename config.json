@@ -1,5 +1,6 @@
 {
-  "url": "https://community.jisudeng.com",
+  "url": "https://jisudeng.com/community",
+  "relative_path": "/community",
   "port": "4567",
   "bind_address": "0.0.0.0",
   "database": "mongo",
