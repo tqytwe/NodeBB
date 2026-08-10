@@ -8,7 +8,8 @@
     "port": "MONGO_PORT",
     "username": "MONGO_USERNAME",
     "password": "MONGO_PASSWORD",
-    "database": "MONGO_DATABASE"
+    "database": "MONGO_DATABASE",
+    "uri": "MONGO_URI"
   },
   "redis": {
     "host": "REDIS_HOST",
