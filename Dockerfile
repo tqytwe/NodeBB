@@ -13,14 +13,15 @@ RUN cd /usr/src/app/node_modules/nodebb-plugin-sub2api-sso && \
     npm install --production --no-audit --no-fund --unsafe-perm && \
     chown -R nodebb:nodebb /usr/src/app/node_modules/nodebb-plugin-sub2api-sso
 
-# 确保 /opt/config 目录存在
+# 复制默认 config.json 模板到 /opt/config/
+# 如果 /opt/config/config.json 不存在,使用此文件
 RUN mkdir -p /opt/config && chown -R nodebb:nodebb /opt/config
 
-# 复制启动包装脚本
-COPY nodebb-start.sh /usr/local/bin/nodebb-start.sh
-RUN chmod +x /usr/local/bin/nodebb-start.sh && chown nodebb:nodebb /usr/local/bin/nodebb-start.sh
+# 复制配置脚本到 /usr/local/bin/
+COPY init-config.sh /usr/local/bin/init-config.sh
+RUN chmod +x /usr/local/bin/init-config.sh && chown nodebb:nodebb /usr/local/bin/init-config.sh
 
 USER nodebb
 
-# 覆盖 CMD，直接调用我们的启动脚本
-CMD ["/usr/local/bin/nodebb-start.sh"]
+# 使用自定义 CMD 直接启动 NodeBB
+CMD ["/usr/local/bin/init-config.sh"]
