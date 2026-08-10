@@ -1,133 +1,101 @@
 # Sub2API NodeBB 论坛
 
-Sub2API 平台论坛系统，基于 NodeBB 4.x，部署在 Zeabur 平台。
+Sub2API 平台论坛系统，基于 NodeBB 4.x，部署到 Zeabur。
 
 ## 主平台信息
 
-- **主平台**: sub2api-wortic (Zeabur)
-- **主域名**: jisudeng.com
-- **主平台 API**: api.jisudeng.com
-
-## 论坛部署
-
 - **平台**: Zeabur
+- **项目名**: sub2api-wortic
+- **主域名**: jisudeng.com / www.jisudeng.com
+- **主平台 API**: api.jisudeng.com
 - **论坛域名**: community.jisudeng.com (待绑定)
-- **NodeBB 版本**: 4.x
-- **数据库**: MongoDB (Zeabur 提供)
-- **缓存**: Redis (Zeabur 提供)
 
-## 快速部署
+## 论坛部署（Zeabur Git 集成）
 
-### 1. Zeabur 一键部署 NodeBB 模板
+### 1. 在 Zeabur 添加 NodeBB 服务（Git 仓库方式）
 
 1. 登录 https://zeabur.com
-2. 进入主平台项目
-3. 点击 "Deploy New Service" → "Template"
-4. 搜索 "NodeBB"
-5. 选择 https://zeabur.com/templates/OPQZX6
-6. 一键部署（自动创建 NodeBB + MongoDB + Redis）
+2. 进入项目 `sub2api-wortic`
+3. 点击 **+ Add Service** → **Git 仓库** (不是模板)
+4. 选择 GitHub 仓库：`tqytwe/NodeBB`
+5. 选择分支：`main`
+6. Zeabur 自动识别为 Node.js 项目（基于 `package.json`）
 
-### 2. 绑定域名
+### 2. Zeabur 自动配置
 
-在 Zeabur 控制台：
-- NodeBB 服务 → Networking → Custom Domain
-- 添加 `community.jisudeng.com`
-- Zeabur 自动配置 SSL
+- ✅ 端口：使用 `process.env.PORT`（Zeabur 分配）
+- ✅ MongoDB：通过 Zeabur Marketplace 添加
+- ✅ Redis：通过 Zeabur Marketplace 添加
+- ✅ HTTPS：Zeabur 自动配置
 
-### 3. 配置环境变量
+### 3. 添加 MongoDB 和 Redis 服务
 
-在 Zeabur 控制台，NodeBB 服务 → Environment Variables：
+在同一项目内：
+
+1. 点击 **+ Add Service** → **数据库** → **MongoDB**
+2. 点击 **+ Add Service** → **数据库** → **Redis**
+
+### 4. 配置 NodeBB 环境变量
+
+在 NodeBB 服务 → **Variables**：
+
+#### 必需配置（用户手动设置）
 
 ```bash
+# 主平台地址
 SUB2API_PLATFORM_URL=https://jisudeng.com
+
+# NodeBB OAuth2 客户端配置
 NODEBB_SSO_CLIENT_ID=sub2api_forum
-NODEBB_SSO_CLIENT_SECRET=<32字节hex>
+NODEBB_SSO_CLIENT_SECRET=<生成32字节hex>
 NODEBB_SSO_AUTHORIZE_URL=https://api.jisudeng.com/api/v1/sso/oauth/authorize
 NODEBB_SSO_TOKEN_URL=https://api.jisudeng.com/api/v1/sso/oauth/token
 NODEBB_SSO_USERINFO_URL=https://api.jisudeng.com/api/v1/sso/oauth/userinfo
-NODEBB_SSO_WEBHOOK_SECRET=<32字节hex>
+NODEBB_SSO_WEBHOOK_SECRET=<生成32字节hex>
 ```
 
-### 4. 安装自定义插件
+#### MongoDB 配置（Zeabur 自动注入到引用服务）
 
-通过 Zeabur 的 Custom Build / Volume 挂载：
-
-1. 把 `plugins/nodebb-plugin-sub2api-sso/` 上传到 GitHub
-2. Zeabur 在构建时自动安装
-3. 或通过 Zeabur 的 Volume 功能挂载插件目录
-
-### 5. 初始化 NodeBB
-
-访问 https://community.jisudeng.com 完成初始化设置。
-
-## GitHub 自动部署
-
-Zeabur 支持 GitHub 集成：
-1. Zeabur 控制台 → Service → Source
-2. 连接 GitHub 仓库 `tqytwe/NodeBB`
-3. 选择 main 分支
-4. 推送代码自动部署
-
-## 架构图
+在 NodeBB 服务 → **Variables** → **Connect to MongoDB**:
 
 ```
-浏览器
-  │
-  ├── https://jisudeng.com/         → 主平台 (Zeabur: sub2api-wortic)
-  ├── https://api.jisudeng.com/     → 主平台 API
-  └── https://community.jisudeng.com/ → NodeBB 论坛 (Zeabur)
-
-数据库
-  ├── PostgreSQL (主平台)
-  ├── MongoDB (NodeBB)
-  └── Redis (NodeBB)
-
-同步机制
-  ├── OAuth2 SSO (账号互通)
-  └── Webhook (余额/VIP/角色同步)
+MONGO_HOST, MONGO_PORT, MONGO_USERNAME, MONGO_PASSWORD, MONGO_DATABASE
 ```
 
-## 集成到主平台
+Zeabur 会自动注入。
 
-主平台 ForumView 通过 iframe 嵌入论坛：
+### 5. 绑定自定义域名
 
-```html
-<iframe src="https://community.jisudeng.com/?embed=1&lang=zh-CN"></iframe>
-```
+NodeBB 服务 → **Networking** → **Custom Domain**:
 
-或独立访问：
-```
-https://community.jisudeng.com/
-```
+- 添加 `community.jisudeng.com`
+- 在 DNS 添加 CNAME 指向 Zeabur
 
-## 端口说明
+### 6. 初始化 NodeBB
 
-Zeabur 自动处理端口映射：
-- 平台内部：NodeBB 监听 4567
-- 平台外部：通过 443 HTTPS 访问
-- 无需手动配置 Nginx
+首次访问 `https://community.jisudeng.com` 完成初始化：
 
-## 与主平台对接
+- Admin username: `admin`
+- Admin email: `admin@jisudeng.com`
+- Admin password: `<强密码>`
 
-主平台需要新增：
-- OAuth2 Provider 端点（`/api/v1/sso/oauth/*`）
-- Webhook 推送器
-- 论坛订单接收端点
-- 前端 ForumView 页面
+## 自动部署
 
-详细规范：主平台 `sub2api/docs/forum-integration/`
+每次 push 到 main 分支，Zeabur 自动重新部署。
 
-## 目录结构
+## 文件说明
 
 ```
 .
-├── README.md                       # 本文件
-├── .env.example                    # 环境变量示例
-├── .gitignore                      # Git 忽略
-├── .github/workflows/              # CI 配置
-│   └── deploy.yml
+├── Dockerfile              # Zeabur 构建镜像
+├── package.json            # Node.js 项目元数据
+├── config.json             # NodeBB 运行时配置
+├── zbpack.json             # Zeabur 构建配置（可选）
+├── README.md               # 本文件
+├── .env.example            # 环境变量示例
+├── .gitignore              # Git 忽略
 └── plugins/
-    └── nodebb-plugin-sub2api-sso/  # 自定义 SSO 插件
+    └── nodebb-plugin-sub2api-sso/
         ├── plugin.json
         ├── library.js
         ├── webhook-handlers.js
@@ -138,6 +106,12 @@ Zeabur 自动处理端口映射：
         ├── templates/client/header.tpl
         └── languages/{zh-CN,en-GB}.json
 ```
+
+## 端口说明
+
+- **NodeBB 内部**: 4567
+- **Zeabur 分配**: 通过 `process.env.PORT`
+- **外部访问**: 443 HTTPS（Zeabur 自动）
 
 ## License
 

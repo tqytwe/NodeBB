@@ -1,0 +1,20 @@
+{
+  "name": "sub2api-forum",
+  "version": "1.0.0",
+  "description": "Sub2API NodeBB Forum - 部署到 Zeabur",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "cd plugins/nodebb-plugin-sub2api-sso && npm install --production && cd ../.. && node loader.js",
+    "build": "echo 'NodeBB built-in'"
+  },
+  "dependencies": {
+    "nodebb": "^3.0.0",
+    "passport-oauth2": "^1.7.0"
+  },
+  "keywords": ["nodebb", "forum", "sub2api", "zeabur"],
+  "author": "Sub2API Team",
+  "license": "MIT"
+}

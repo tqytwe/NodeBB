@@ -1,0 +1,23 @@
+{
+  "url": "https://community.jisudeng.com",
+  "port": "4567",
+  "bind_address": "0.0.0.0",
+  "database": "mongo",
+  "mongo": {
+    "host": "MONGO_HOST",
+    "port": "MONGO_PORT",
+    "username": "MONGO_USERNAME",
+    "password": "MONGO_PASSWORD",
+    "database": "MONGO_DATABASE"
+  },
+  "redis": {
+    "host": "REDIS_HOST",
+    "port": "REDIS_PORT",
+    "password": "REDIS_PASSWORD"
+  },
+  "upload_path": "/usr/src/app/public/uploads",
+  "bcrypt_rounds": 12,
+  "default_locale": "zh-CN",
+  "languages": ["zh-CN", "en-GB"],
+  "log_level": "info"
+}

@@ -1,0 +1,6 @@
+{
+  "app_dir": ".",
+  "build_command": "echo 'NodeBB built-in'",
+  "start_command": "node loader.js",
+  "output_dir": ""
+}
