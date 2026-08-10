@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e
 
-CONFIG_DIR="${CONFIG_DIR:-/opt/config}"
+# Exported, not plain shell vars: the node heredocs below read these from the
+# environment, and an unexported value silently arrives as undefined.
+export CONFIG_DIR="${CONFIG_DIR:-/opt/config}"
+export PLUGIN_NAME="nodebb-plugin-sub2api-sso"
+export PLUGIN_SRC="/usr/src/app/custom-plugins/$PLUGIN_NAME"
 CONFIG_FILE="$CONFIG_DIR/config.json"
-PLUGIN_NAME="nodebb-plugin-sub2api-sso"
-PLUGIN_SRC="/usr/src/app/custom-plugins/$PLUGIN_NAME"
 
 log() { echo "[init-config] $*"; }
 
@@ -26,6 +28,12 @@ export NODEBB_URL="${NODEBB_URL:-https://community.jisudeng.com}"
 export MONGO_DATABASE="${MONGO_DATABASE:-sub2api_forum}"
 export MONGO_PORT="${MONGO_PORT:-27017}"
 export NODEBB_PORT="${PORT:-4567}"
+# Re-exported explicitly: the generator below reads these from the environment.
+# Zeabur already injects them, but relying on that makes the script silently
+# produce a broken config anywhere else.
+export MONGO_HOST="${MONGO_HOST:-127.0.0.1}"
+export MONGO_USERNAME="${MONGO_USERNAME:-}"
+export MONGO_PASSWORD="${MONGO_PASSWORD:-}"
 
 node <<'GENEOF'
 const fs = require('fs');
@@ -119,6 +127,19 @@ PKGEOF
 )
 
 log "plugin dependency in persisted package.json: ${PLUGIN_REGISTERED}"
+
+# Fail loudly rather than booting a forum whose SSO plugin is silently missing.
+# An earlier revision left PLUGIN_NAME unexported, so the heredoc above wrote
+# dependencies["undefined"] and the plugin was pruned again with no error.
+VERIFY=$(node -e '
+const pkg = require(`${process.env.CONFIG_DIR}/package.json`);
+const got = (pkg.dependencies || {})[process.env.PLUGIN_NAME];
+process.stdout.write(got === `file:${process.env.PLUGIN_SRC}` ? "ok" : `bad:${got}`);
+')
+if [ "$VERIFY" != "ok" ]; then
+  log "ERROR: plugin dependency not registered correctly (${VERIFY})"
+  exit 1
+fi
 
 # Link it into node_modules now so `nodebb activate` can resolve the plugin
 # during first-run setup, before the entrypoint's npm install has run.
