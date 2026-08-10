@@ -1,0 +1,15 @@
+{
+  "name": "nodebb-plugin-sub2api-sso",
+  "version": "1.0.0",
+  "description": "OAuth2 SSO + wallet/VIP sync from Sub2API platform",
+  "main": "library.js",
+  "keywords": ["nodebb", "plugin", "sso", "oauth2", "sub2api"],
+  "author": "Sub2API Team",
+  "license": "MIT",
+  "dependencies": {
+    "passport-oauth2": "^1.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

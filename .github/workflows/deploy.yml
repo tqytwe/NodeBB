@@ -1,0 +1,61 @@
+name: Deploy NodeBB Forum
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            
+            cd /opt/sub2api-forum
+            
+            echo "📥 Pulling latest code..."
+            git pull origin main
+            
+            echo "📦 Creating backup..."
+            ./scripts/backup.sh
+            
+            echo "📥 Pulling latest images..."
+            docker-compose pull
+            
+            echo "🔌 Updating plugins..."
+            docker cp plugins/nodebb-plugin-sub2api-sso/. \
+                   sub2api-forum:/usr/src/app/node_modules/nodebb-plugin-sub2api-sso/
+            
+            echo "🔄 Restarting NodeBB..."
+            docker-compose restart nodebb
+            
+            sleep 20
+            
+            echo "🏥 Health check..."
+            ./scripts/health-check.sh
+            
+            echo "✅ Deployment successful"
+
+      - name: Notify Slack
+        if: always()
+        run: |
+          STATUS=$([ "${{ job.status }}" == "success" ] && echo "✅" || echo "❌")
+          curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"text\":\"$STATUS NodeBB deploy ${{ job.status }}\"}" || true

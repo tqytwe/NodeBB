@@ -1,0 +1,25 @@
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 密钥
+*.key
+*.pem
+secrets/
+
+# 数据
+mongo-data/
+redis-data/
+nodebb-uploads/
+backups/
+
+# 生成的配置
+nodebb-config/config.json
+
+# 日志
+*.log
+
+# Node
+node_modules/
+npm-debug.log

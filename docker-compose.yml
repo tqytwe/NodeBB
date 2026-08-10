@@ -1,0 +1,77 @@
+version: "3.8"
+
+services:
+  nodebb:
+    image: nodebb/docker:v4.0.0
+    container_name: sub2api-forum
+    restart: always
+    user: "1000:1000"
+    networks:
+      - forum-net
+    ports:
+      - "127.0.0.1:4567:4567"
+    environment:
+      - NODEBB_CONFIG=/usr/src/app/config.json
+      - SUB2API_PLATFORM_URL=${SUB2API_PLATFORM_URL}
+      - NODEBB_SSO_CLIENT_ID=${NODEBB_SSO_CLIENT_ID}
+      - NODEBB_SSO_CLIENT_SECRET=${NODEBB_SSO_CLIENT_SECRET}
+      - NODEBB_SSO_AUTHORIZE_URL=${NODEBB_SSO_AUTHORIZE_URL}
+      - NODEBB_SSO_TOKEN_URL=${NODEBB_SSO_TOKEN_URL}
+      - NODEBB_SSO_USERINFO_URL=${NODEBB_SSO_USERINFO_URL}
+      - NODEBB_SSO_WEBHOOK_SECRET=${NODEBB_WEBHOOK_SECRET}
+    volumes:
+      - ./nodebb-config/config.json:/usr/src/app/config.json:ro
+      - ./nodebb-uploads:/usr/src/app/public/uploads
+      - ./plugins/nodebb-plugin-sub2api-sso:/usr/src/app/node_modules/nodebb-plugin-sub2api-sso
+    depends_on:
+      - mongo
+      - redis
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4567/api/sub2api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  mongo:
+    image: mongo:7
+    container_name: sub2api-forum-mongo
+    restart: always
+    networks:
+      - forum-net
+    volumes:
+      - ./mongo-data:/data/db
+      - ./mongo-config:/etc/mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nodebb
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    command: ["--config", "/etc/mongo/mongod.conf"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: sub2api-forum-redis
+    restart: always
+    networks:
+      - forum-net
+    volumes:
+      - ./redis-data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  forum-net:
+    driver: bridge

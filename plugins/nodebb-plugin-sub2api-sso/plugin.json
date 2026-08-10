@@ -1,0 +1,18 @@
+{
+  "id": "nodebb-plugin-sub2api-sso",
+  "name": "Sub2API SSO & Wallet Sync",
+  "version": "1.0.0",
+  "description": "OAuth2 SSO + wallet/VIP sync from Sub2API platform",
+  "main": "library.js",
+  "hooks": [
+    { "hook": "static:app.load", "method": "init" },
+    { "hook": "static:api.routes", "method": "addAPIRoutes" },
+    { "hook": "filter:auth.init", "method": "getStrategy" },
+    { "hook": "filter:user.profileMenu", "method": "addProfileMenu" },
+    { "hook": "filter:header.build", "method": "addHeaderSub2APIInfo" },
+    { "hook": "filter:admin.header.build", "method": "addAdminNav" }
+  ],
+  "dependencies": {
+    "passport-oauth2": "^1.7.0"
+  }
+}
