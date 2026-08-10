@@ -1,6 +1,6 @@
 # ============================================
-# Sub2API NodeBB 论坛 - Zeabur Dockerfile (修复版)
-# 基于官方 NodeBB 镜像 + 我们的插件
+# Sub2API NodeBB 论坛 - Zeabur Dockerfile
+# 基于官方 NodeBB 镜像 + 自定义插件
 # ============================================
 FROM ghcr.io/nodebb/nodebb:latest
 
@@ -17,11 +17,15 @@ RUN cd /usr/src/app/node_modules/nodebb-plugin-sub2api-sso && \
     npm install --production --no-audit --no-fund --unsafe-perm && \
     chown -R nodebb:nodebb /usr/src/app/node_modules/nodebb-plugin-sub2api-sso
 
+# 复制自定义启动脚本 (不是 loader.js，避免与官方冲突)
+COPY start.sh /usr/src/app/start.sh
+RUN chmod +x /usr/src/app/start.sh && chown nodebb:nodebb /usr/src/app/start.sh
+
 # 切回 nodebb 用户
 USER nodebb
 
 # Zeabur 通过 PORT 环境变量分配端口
 EXPOSE 4567
 
-# 启动 NodeBB
-CMD ["node", "loader.js"]
+# 启动脚本
+CMD ["/usr/src/app/start.sh"]

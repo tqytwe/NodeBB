@@ -1,6 +1,6 @@
 {
   "url": "https://community.jisudeng.com",
-  "port": "4567",
+  "port": "PORT",
   "bind_address": "0.0.0.0",
   "database": "mongo",
   "mongo": {
