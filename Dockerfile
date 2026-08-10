@@ -17,7 +17,10 @@ RUN cd /usr/src/app/node_modules/nodebb-plugin-sub2api-sso && \
     npm install --production --no-audit --no-fund --unsafe-perm && \
     chown -R nodebb:nodebb /usr/src/app/node_modules/nodebb-plugin-sub2api-sso
 
-# 复制自定义启动脚本 (不是 loader.js，避免与官方冲突)
+# 创建 Zeabur 期望的 config 目录
+RUN mkdir -p /opt/config && chown -R nodebb:nodebb /opt/config
+
+# 复制自定义启动脚本
 COPY start.sh /usr/src/app/start.sh
 RUN chmod +x /usr/src/app/start.sh && chown nodebb:nodebb /usr/src/app/start.sh
 
