@@ -9,6 +9,13 @@ RUN cd /usr/src/app/custom-plugins/nodebb-plugin-sub2api-sso && \
     npm install --production --no-audit --no-fund --unsafe-perm && \
     chown -R nodebb:nodebb /usr/src/app/custom-plugins
 
+# Core patch: make the session cookie SameSite configurable so the forum can be
+# embedded cross-site by the main platform. Runs at BUILD time and exits non-zero
+# if the upstream source no longer matches, so a NodeBB upgrade that moves this
+# code fails the build instead of silently shipping a broken iframe login.
+COPY patches/ /usr/src/app/patches/
+RUN node /usr/src/app/patches/configurable-cookie-samesite.js /usr/src/app/src/meta/configs.js
+
 COPY init-config.sh /usr/local/bin/init-config.sh
 RUN chmod +x /usr/local/bin/init-config.sh && chown nodebb:nodebb /usr/local/bin/init-config.sh
 

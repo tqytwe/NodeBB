@@ -41,6 +41,11 @@ function buildConfig() {
     tokenUrl: process.env.NODEBB_SSO_TOKEN_URL,
     userInfoUrl: process.env.NODEBB_SSO_USERINFO_URL,
     webhookSecret: process.env.NODEBB_SSO_WEBHOOK_SECRET,
+    // Who may embed this forum in a frame, e.g. "'self' https://jisudeng.com".
+    // src/middleware/headers.js turns this into the Content-Security-Policy
+    // frame-ancestors directive and, crucially, stops emitting the legacy
+    // X-Frame-Options: SAMEORIGIN header once it is set to anything but 'none'.
+    frameAncestors: (process.env.SUB2API_FRAME_ANCESTORS || '').trim(),
     enabled: !!(process.env.NODEBB_SSO_CLIENT_ID && process.env.NODEBB_SSO_CLIENT_SECRET),
   }
 }
@@ -72,7 +77,33 @@ plugin.init = async function (params) {
     winston.warn('[sub2api-sso] NODEBB_SSO_WEBHOOK_SECRET not set, webhooks will be rejected')
   }
 
+  await plugin.applyFrameAncestors(config)
+
   plugin.addWebhookRoutes(params)
+}
+
+// `csp-frame-ancestors` is an ACP/database setting, not an nconf value, so it
+// cannot be set from config.json. Applying it here on every boot keeps the
+// deployed environment authoritative: the value lives in the Zeabur service
+// config next to everything else instead of only in a database row somebody
+// once clicked. Deliberately a no-op when the env var is unset, so an operator
+// can still manage it from the ACP if they prefer.
+plugin.applyFrameAncestors = async function (config) {
+  if (!config.frameAncestors) return
+
+  try {
+    const meta = require.main.require('./src/meta')
+    const current = await meta.configs.get('csp-frame-ancestors')
+    if (current === config.frameAncestors) {
+      winston.verbose(`[sub2api-sso] csp-frame-ancestors already "${config.frameAncestors}"`)
+      return
+    }
+    await meta.configs.set('csp-frame-ancestors', config.frameAncestors)
+    winston.info(`[sub2api-sso] csp-frame-ancestors set to "${config.frameAncestors}"`)
+  } catch (err) {
+    // Never take the forum down over a header setting.
+    winston.error(`[sub2api-sso] failed to set csp-frame-ancestors: ${err.message}`)
+  }
 }
 
 // ---------------------------------------------------------------------------
