@@ -52,11 +52,18 @@ const uri = `mongodb://${cred}${host}:${port}/${db}?authSource=admin`;
 
 let config = {};
 if (fs.existsSync(file)) {
+  const raw = fs.readFileSync(file, 'utf8');
   try {
-    config = JSON.parse(fs.readFileSync(file, 'utf8'));
+    config = JSON.parse(raw);
   } catch (err) {
-    console.log('[init-config] existing config.json unparseable, regenerating');
-    config = {};
+    // Never silently regenerate: config.json holds `secret`, and losing it
+    // invalidates every session and makes express-session throw
+    // "secret option required for sessions" on every request, i.e. a 500 on
+    // the whole site. Keep a copy and fail loudly instead.
+    const backup = `${file}.corrupt.${Date.now()}`;
+    fs.writeFileSync(backup, raw);
+    console.error(`[init-config] ERROR: config.json is unparseable, saved to ${backup}`);
+    process.exit(1);
   }
 }
 
@@ -70,6 +77,16 @@ config.bcrypt_rounds = config.bcrypt_rounds || 12;
 config.default_locale = config.default_locale || 'zh-CN';
 config.languages = config.languages || ['zh-CN', 'en-GB'];
 config.log_level = config.log_level || 'info';
+
+// Session secret. `nodebb setup` generates this, but this script also runs on
+// boots where setup is skipped, so it must be carried forward explicitly --
+// dropping it makes express-session throw on every request and 500s the site.
+// Generating one here also covers the case where setup ran with --skip-build
+// against an already-populated database.
+if (!config.secret) {
+  config.secret = require('crypto').randomUUID();
+  console.log('[init-config] generated a new session secret (existing sessions are invalidated)');
+}
 // NodeBB sits behind the Zeabur gateway, so Express must trust X-Forwarded-*
 // or every client IP is logged as the gateway and secure cookies misbehave.
 config.trust_proxy = true;
