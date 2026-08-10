@@ -4,12 +4,12 @@
   "bind_address": "0.0.0.0",
   "database": "mongo",
   "mongo": {
+    "uri": "MONGO_URI",
     "host": "MONGO_HOST",
     "port": "MONGO_PORT",
     "username": "MONGO_USERNAME",
     "password": "MONGO_PASSWORD",
-    "database": "MONGO_DATABASE",
-    "uri": "MONGO_URI"
+    "database": "MONGO_DATABASE"
   },
   "redis": {
     "host": "REDIS_HOST",
