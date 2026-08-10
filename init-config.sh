@@ -24,7 +24,7 @@ mkdir -p "$CONFIG_DIR"
 # authSource. Zeabur creates the mongo root user in the `admin` database, so the
 # generated string always fails with AuthenticationFailed. Setting mongo.uri wins
 # over that construction (`return uri || ...`), so we build it ourselves.
-export NODEBB_URL="${NODEBB_URL:-https://community.jisudeng.com}"
+export NODEBB_URL="${NODEBB_URL:-https://jisudengbbs.zeabur.app}"
 export MONGO_DATABASE="${MONGO_DATABASE:-sub2api_forum}"
 export MONGO_PORT="${MONGO_PORT:-27017}"
 export NODEBB_PORT="${PORT:-4567}"
