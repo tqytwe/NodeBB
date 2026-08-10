@@ -3,11 +3,11 @@ LABEL "language"="nodejs"
 
 USER root
 
-COPY plugins/nodebb-plugin-sub2api-sso/ /usr/src/app/node_modules/nodebb-plugin-sub2api-sso/
+COPY plugins/nodebb-plugin-sub2api-sso/ /usr/src/app/custom-plugins/nodebb-plugin-sub2api-sso/
 
-RUN cd /usr/src/app/node_modules/nodebb-plugin-sub2api-sso && \
+RUN cd /usr/src/app/custom-plugins/nodebb-plugin-sub2api-sso && \
     npm install --production --no-audit --no-fund --unsafe-perm && \
-    chown -R nodebb:nodebb /usr/src/app/node_modules/nodebb-plugin-sub2api-sso
+    chown -R nodebb:nodebb /usr/src/app/custom-plugins
 
 COPY init-config.sh /usr/local/bin/init-config.sh
 RUN chmod +x /usr/local/bin/init-config.sh && chown nodebb:nodebb /usr/local/bin/init-config.sh

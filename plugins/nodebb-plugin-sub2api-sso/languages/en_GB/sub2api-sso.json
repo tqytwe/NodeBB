@@ -2,7 +2,7 @@
   "sso-welcome": "Welcome to Sub2API Community",
   "sso-login-with-sub2api": "Login with Sub2API account",
   "sso-vip-badge": "VIP{tier}",
-  "sso-wallet-balance": "Wallet Balance: ${balance}",
+  "sso-wallet-balance": "Wallet Balance: ¥{balance}",
   "sso-pay-with-platform": "Pay with Platform Wallet",
   "sso-recharge-needed": "Insufficient balance, please recharge",
   "sso-recharge-link": "Recharge Now",
@@ -10,5 +10,12 @@
   "sso-upgrade-vip": "Upgrade VIP",
   "sso-current-tier": "Current Tier",
   "sso-bind-success": "Account bound successfully",
-  "sso-insufficient-balance": "Insufficient balance"
+  "sso-insufficient-balance": "Insufficient balance",
+  "sso-wallet": "Sub2API Wallet",
+  "sso-processing": "Processing...",
+  "sso-retry": "Retry",
+  "sso-param-error": "Invalid parameters",
+  "sso-order-failed": "Failed to create order",
+  "sso-payment-success": "Payment successful",
+  "sso-balance-updated": "Balance updated: ¥{balance}"
 }

@@ -2,7 +2,7 @@
   "sso-welcome": "欢迎来到 Sub2API 社区",
   "sso-login-with-sub2api": "用 Sub2API 账号登录",
   "sso-vip-badge": "VIP{tier}",
-  "sso-wallet-balance": "钱包余额: Y{balance}",
+  "sso-wallet-balance": "钱包余额: ¥{balance}",
   "sso-pay-with-platform": "使用平台余额支付",
   "sso-recharge-needed": "余额不足，请前往平台充值",
   "sso-recharge-link": "前往充值",
@@ -10,5 +10,12 @@
   "sso-upgrade-vip": "升级 VIP",
   "sso-current-tier": "当前等级",
   "sso-bind-success": "账号绑定成功",
-  "sso-insufficient-balance": "余额不足"
+  "sso-insufficient-balance": "余额不足",
+  "sso-wallet": "Sub2API 钱包",
+  "sso-processing": "处理中...",
+  "sso-retry": "重试",
+  "sso-param-error": "参数错误",
+  "sso-order-failed": "下单失败",
+  "sso-payment-success": "支付成功",
+  "sso-balance-updated": "余额已更新: ¥{balance}"
 }

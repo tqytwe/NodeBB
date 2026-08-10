@@ -3,6 +3,8 @@ set -e
 
 CONFIG_DIR="${CONFIG_DIR:-/opt/config}"
 CONFIG_FILE="$CONFIG_DIR/config.json"
+PLUGIN_NAME="nodebb-plugin-sub2api-sso"
+PLUGIN_SRC="/usr/src/app/custom-plugins/$PLUGIN_NAME"
 
 log() { echo "[init-config] $*"; }
 
@@ -60,15 +62,83 @@ config.bcrypt_rounds = config.bcrypt_rounds || 12;
 config.default_locale = config.default_locale || 'zh-CN';
 config.languages = config.languages || ['zh-CN', 'en-GB'];
 config.log_level = config.log_level || 'info';
+// NodeBB sits behind the Zeabur gateway, so Express must trust X-Forwarded-*
+// or every client IP is logged as the gateway and secure cookies misbehave.
+config.trust_proxy = true;
 
-fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
+// /opt/config files are root-owned while the app may run unprivileged; the
+// directory itself is writable, so write a temp file and rename over the top.
+const tmp = `${file}.tmp`;
+fs.writeFileSync(tmp, `${JSON.stringify(config, null, 2)}\n`);
+fs.renameSync(tmp, file);
 console.log(`[init-config] wrote ${file} (port=${config.port}, db=${db}, authSource=admin)`);
 GENEOF
 
-# Detect whether NodeBB has ever been installed into this database. An empty
-# `objects` collection means a fresh database that still needs `nodebb setup`.
 cd /usr/src/app
 
+# ---------------------------------------------------------------------------
+# Register the SSO plugin in the PERSISTED package.json.
+#
+# The official entrypoint symlinks $CONFIG_DIR/package.json over
+# /usr/src/app/package.json and then runs `npm install`. npm prunes anything not
+# declared there, which is exactly why a plugin COPY'd straight into
+# node_modules disappeared at runtime ("active but not installed"). Declaring it
+# as an absolute file: dependency before the handoff makes npm keep it.
+# ---------------------------------------------------------------------------
+if [ ! -d "$PLUGIN_SRC" ]; then
+  log "ERROR: plugin source $PLUGIN_SRC missing from the image"
+  exit 1
+fi
+
+# Replicate the entrypoint's seed step so there is something to edit.
+if [ ! -f "$CONFIG_DIR/package.json" ]; then
+  log "seeding $CONFIG_DIR/package.json from install/package.json"
+  cp /usr/src/app/install/package.json "$CONFIG_DIR/package.json"
+fi
+
+PLUGIN_REGISTERED=$(node <<'PKGEOF'
+const fs = require('fs');
+const dir = process.env.CONFIG_DIR || '/opt/config';
+const file = `${dir}/package.json`;
+const name = process.env.PLUGIN_NAME;
+const want = `file:${process.env.PLUGIN_SRC}`;
+
+const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+pkg.dependencies = pkg.dependencies || {};
+
+if (pkg.dependencies[name] === want) {
+  process.stdout.write('unchanged');
+} else {
+  pkg.dependencies[name] = want;
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, `${JSON.stringify(pkg, null, 2)}\n`);
+  fs.renameSync(tmp, file);
+  process.stdout.write('changed');
+}
+PKGEOF
+)
+
+log "plugin dependency in persisted package.json: ${PLUGIN_REGISTERED}"
+
+# Link it into node_modules now so `nodebb activate` can resolve the plugin
+# during first-run setup, before the entrypoint's npm install has run.
+mkdir -p /usr/src/app/node_modules
+ln -sfn "$PLUGIN_SRC" "/usr/src/app/node_modules/$PLUGIN_NAME"
+
+# install_hash.md5 matches install/package.json on every boot, so the official
+# build_forum() would print "No changes in package.json. Skipping build..." and
+# the plugin's client assets (static/lib/main.js, styles.less) would never be
+# compiled. build/ lives in the container layer, not the persistent volume, so
+# key the decision off whether the built manifest already lists the plugin.
+if ! grep -q "$PLUGIN_NAME" /usr/src/app/build/active_plugins.json 2>/dev/null; then
+  log "built assets do not include $PLUGIN_NAME, forcing a build"
+  export START_BUILD=true
+else
+  log "built assets already include $PLUGIN_NAME, skipping rebuild"
+fi
+
+# Detect whether NodeBB has ever been installed into this database. An empty
+# `objects` collection means a fresh database that still needs `nodebb setup`.
 set +e
 INSTALLED=$(node -e '
 const { MongoClient } = require("mongodb");
@@ -110,8 +180,8 @@ case "$INSTALLED" in
       log "ERROR: nodebb setup failed"
       exit 1
     }
-    log "setup finished, activating sub2api-sso plugin"
-    ./nodebb activate nodebb-plugin-sub2api-sso --config="$CONFIG_FILE" || \
+    log "setup finished, activating $PLUGIN_NAME"
+    ./nodebb activate "$PLUGIN_NAME" --config="$CONFIG_FILE" || \
       log "WARN: plugin activation failed, activate it from the admin panel"
     ;;
   yes)
