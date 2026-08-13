@@ -54,6 +54,15 @@ exports.upsertUser = async function (userInfo, accessToken) {
     'sub2api:recharge_bonus_pct': userInfo.recharge_bonus_pct,
   })
 
+  // Platform accounts are created against verified email addresses, and the
+  // SSO userinfo endpoint exposes that fact. Mirror it into NodeBB's own email
+  // state so OAuth users are not trapped on /register/complete after a
+  // successful SSO login. confirmByUid also moves the account from
+  // unverified-users to verified-users, keeping NodeBB privileges consistent.
+  if (userInfo.email_verified !== false && user.email && user.email.confirmByUid) {
+    await user.email.confirmByUid(uid)
+  }
+
   // Forward binding + reverse index + membership zset.
   await db.setObjectField(`sub2api:user:${uid}`, 'sub2api_uid', String(userInfo.id))
   await db.setObjectField(INDEX_KEY, String(userInfo.id), uid)
