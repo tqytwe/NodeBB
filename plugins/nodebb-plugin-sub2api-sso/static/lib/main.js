@@ -12,6 +12,12 @@
     return (config.sub2api && config.sub2api.platformOrigin) || null
   }
 
+  function formatMoney(value, currency) {
+    var amount = Number(value)
+    if (!Number.isFinite(amount)) amount = 0
+    return (currency === 'CNY' ? '¥' : (currency ? currency + ' ' : '¥')) + amount.toFixed(2)
+  }
+
   function ajaxHeaders() {
     return {
       'Content-Type': 'application/json',
@@ -47,7 +53,7 @@
     $wrap.append(
       $('<span class="sub2api-wallet-info"></span>')
         .append('<i class="fa fa-wallet"></i>')
-        .append($('<span data-sub2api-balance></span>').text('¥' + data.balance))
+        .append($('<span data-sub2api-balance></span>').text(formatMoney(data.balance, data.currency)))
     )
 
     var $li = $anchor.closest('li')
@@ -63,6 +69,12 @@
     $.ajax({ url: API_BASE + '/me', method: 'GET' })
       .done(renderBadge)
       .fail(function () { /* badge is decorative, stay quiet */ })
+  }
+
+  function formatMoney(value, currency) {
+    var amount = Number(value)
+    if (!Number.isFinite(amount)) amount = 0
+    return (currency === 'CNY' ? '¥' : (currency ? currency + ' ' : '¥')) + amount.toFixed(2)
   }
 
   // -------------------------------------------------------------------------
@@ -118,7 +130,7 @@
     if (typeof socket === 'undefined') return
 
     socket.on('event:sub2api-balance-updated', function (data) {
-      $('[data-sub2api-balance]').text('¥' + data.balance)
+      $('[data-sub2api-balance]').text(formatMoney(data.balance, 'CNY'))
       if (data.change > 0) {
         translate('[[sub2api-sso:sso-balance-updated, ' + data.balance + ']]', function (msg) {
           app.alertSuccess(msg)
@@ -199,10 +211,65 @@
     })
   }
 
+  function renderWallet(data) {
+    var $page = $('[data-sub2api-wallet-page]').first()
+    if (!$page.length) return
+
+    var wallet = data || {}
+    $page.find('[data-sub2api-wallet-loading]').addClass('d-none')
+    $page.find('[data-sub2api-wallet-error], [data-sub2api-wallet-unbound]').addClass('d-none')
+    $page.find('[data-sub2api-wallet-content]').removeClass('d-none')
+    $page.find('[data-sub2api-wallet-balance]').text(formatMoney(wallet.balance, wallet.currency))
+    $page.find('[data-sub2api-wallet-frozen]').text(formatMoney(wallet.frozen_balance, wallet.currency))
+    $page.find('[data-sub2api-wallet-currency]').text(wallet.currency || 'CNY')
+    $page.find('[data-sub2api-wallet-vip]').text(wallet.vip_label || ('V' + (wallet.vip_tier || 0)))
+    $page.find('[data-sub2api-wallet-bonus]').text(Number(wallet.recharge_bonus_pct || 0) + '%')
+    $page.find('[data-sub2api-wallet-user-id]').text(wallet.user_id || '—')
+  }
+
+  function showWalletError(xhr) {
+    var $page = $('[data-sub2api-wallet-page]').first()
+    if (!$page.length) return
+
+    $page.find('[data-sub2api-wallet-loading]').addClass('d-none')
+    $page.find('[data-sub2api-wallet-content]').addClass('d-none')
+    var payload = xhr && xhr.responseJSON
+    if (payload && payload.message === 'no_sso_token') {
+      $page.find('[data-sub2api-wallet-unbound]').removeClass('d-none')
+      return
+    }
+    translate('[[sub2api-sso:sso-wallet-load-failed]]', function (msg) {
+      $page.find('[data-sub2api-wallet-error]').text(msg).removeClass('d-none')
+    })
+  }
+
+  function loadWalletPage() {
+    var $page = $('[data-sub2api-wallet-page]').first()
+    if (!$page.length) return
+
+    $.ajax({ url: API_BASE + '/wallet', method: 'GET' })
+      .done(renderWallet)
+      .fail(showWalletError)
+  }
+
+  function initWalletPage() {
+    loadWalletPage()
+    $(window).off('action:ajaxify.end.sub2api-wallet')
+      .on('action:ajaxify.end.sub2api-wallet', loadWalletPage)
+    $('body').off('click.sub2api-wallet', '[data-action="sub2api-wallet-refresh"]')
+      .on('click.sub2api-wallet', '[data-action="sub2api-wallet-refresh"]', function () {
+        var $page = $('[data-sub2api-wallet-page]').first()
+        $page.find('[data-sub2api-wallet-error], [data-sub2api-wallet-unbound]').addClass('d-none')
+        $page.find('[data-sub2api-wallet-loading]').removeClass('d-none')
+        loadWalletPage()
+      })
+  }
+
   $(document).ready(function () {
     initMessaging()
     initSockets()
     initPayButton()
+    initWalletPage()
     loadBadge()
 
     // Re-inject after client-side navigation, which replaces the header.

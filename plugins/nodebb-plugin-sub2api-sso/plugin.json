@@ -2,6 +2,7 @@
   "id": "nodebb-plugin-sub2api-sso",
   "name": "Sub2API SSO & Wallet Sync",
   "description": "OAuth2 SSO + wallet/VIP sync from Sub2API platform",
+  "library": "library.js",
   "hooks": [
     { "hook": "static:app.load", "method": "init" },
     { "hook": "static:api.routes", "method": "addAPIRoutes" },
@@ -16,6 +17,7 @@
   "scss": [
     "static/styles.scss"
   ],
+  "templates": "templates",
   "languages": "languages",
   "defaultLang": "zh-CN",
   "dependencies": {

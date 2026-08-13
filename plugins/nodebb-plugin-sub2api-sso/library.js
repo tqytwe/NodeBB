@@ -5,11 +5,13 @@ const winston = require.main.require('winston')
 const user = require.main.require('./src/user')
 const passport = require.main.require('passport')
 const authenticationController = require.main.require('./src/controllers/authentication')
+const routeHelpers = require.main.require('./src/routes/helpers')
 const OAuth2Strategy = require('passport-oauth2').Strategy
 
 const webhookHandlers = require('./webhook-handlers')
 const userSync = require('./user-sync')
 const forumPayment = require('./forum-payment')
+const controllers = require('./controllers')
 
 const plugin = {}
 
@@ -80,6 +82,25 @@ plugin.init = async function (params) {
   await plugin.applyFrameAncestors(config)
 
   plugin.addWebhookRoutes(params)
+  plugin.addPageRoutes(params)
+}
+
+plugin.addPageRoutes = function (params) {
+  const { router, middleware } = params
+  const accountMiddlewares = [
+    middleware.exposeUid,
+    middleware.ensureLoggedIn,
+    middleware.canViewUsers,
+    middleware.checkAccountPermissions,
+    middleware.buildAccountData,
+  ]
+
+  routeHelpers.setupPageRoute(
+    router,
+    '/user/:userslug/sub2api-wallet',
+    accountMiddlewares,
+    controllers.renderWallet
+  )
 }
 
 // `csp-frame-ancestors` is an ACP/database setting, not an nconf value, so it
@@ -174,11 +195,24 @@ plugin.addAPIRoutes = async function ({ router, middleware }) {
       const fields = await user.getUserFields(req.uid, [
         'sub2api:vip_tier', 'sub2api:vip_label', 'sub2api:balance',
       ])
+      let liveWallet = null
+      try {
+        liveWallet = await forumPayment.getWalletBalance(req.uid)
+      } catch (err) {
+        // Keep the header usable during a short platform/API outage, but mark
+        // the response as stale instead of presenting cached values as live.
+        winston.warn(`[sub2api-sso] live /me wallet fetch failed: ${err.message}`)
+      }
+
       res.json({
-        vipTier: parseInt(fields['sub2api:vip_tier'], 10) || 0,
-        vipLabel: fields['sub2api:vip_label'] || 'V0',
-        balance: fields['sub2api:balance'] || '0.00',
-        bound: !!fields['sub2api:vip_label'],
+        vipTier: liveWallet ? Number(liveWallet.vip_tier) || 0 : parseInt(fields['sub2api:vip_tier'], 10) || 0,
+        vipLabel: liveWallet ? (liveWallet.vip_label || 'V0') : (fields['sub2api:vip_label'] || 'V0'),
+        balance: liveWallet ? (liveWallet.balance || '0.00') : (fields['sub2api:balance'] || '0.00'),
+        frozenBalance: liveWallet ? (liveWallet.frozen_balance || '0.00') : null,
+        rechargeBonusPct: liveWallet ? Number(liveWallet.recharge_bonus_pct) || 0 : null,
+        currency: liveWallet ? (liveWallet.currency || 'CNY') : null,
+        live: !!liveWallet,
+        bound: !!(liveWallet || fields['sub2api:vip_label']),
       })
     } catch (err) {
       winston.error(`[sub2api-sso] /me error: ${err.message}`)
@@ -327,7 +361,7 @@ plugin.addProfileMenu = async function (data) {
 
   links.push({
     id: 'sub2api-wallet',
-    route: '/sub2api-wallet',
+    route: 'sub2api-wallet',
     icon: 'fa-wallet',
     name: '[[sub2api-sso:sso-wallet]]',
     visibility: { self: true, other: false, moderator: false, globalMod: false, admin: false },
