@@ -6,6 +6,7 @@
   "hooks": [
     { "hook": "static:app.load", "method": "init" },
     { "hook": "static:api.routes", "method": "addAPIRoutes" },
+    { "hook": "action:login.continue", "method": "clearRegistrationInterstitial" },
     { "hook": "filter:auth.init", "method": "getStrategy" },
     { "hook": "filter:config.get", "method": "appendConfig" },
     { "hook": "filter:user.profileMenu", "method": "addProfileMenu" },

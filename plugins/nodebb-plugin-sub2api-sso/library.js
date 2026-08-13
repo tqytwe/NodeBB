@@ -379,4 +379,15 @@ plugin.addAdminNav = async function (header) {
   return header
 }
 
+plugin.clearRegistrationInterstitial = async function ({ req, strategy, userData, error }) {
+  if (error || !req || !req.session || !userData) return
+  if (strategy !== 'sub2api' && strategy && strategy.name !== 'sub2api') return
+  if (!req.session.registration) return
+
+  delete req.session.registration
+  if (req.session.save) {
+    await new Promise((resolve) => req.session.save(resolve))
+  }
+}
+
 module.exports = plugin
