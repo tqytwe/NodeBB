@@ -249,7 +249,13 @@ plugin.getStrategy = async function (strategies) {
     clientSecret: config.clientSecret,
     callbackURL: `${nconf.get('url')}/auth/sub2api/callback`,
     scope: ['profile'],
-    state: true,
+    // NodeBB v4 owns OAuth state at the route layer: it persists
+    // req.session.ssoState before starting the redirect and verifies it before
+    // Passport handles the callback. Enabling passport-oauth2's separate state
+    // store here makes the callback require a second state record that NodeBB
+    // never creates when it passes its state string to passport.authenticate.
+    // Keep the core CSRF check and use passport's no-op state store.
+    state: false,
     passReqToCallback: false,
   }, async (accessToken, refreshToken, profile, done) => {
     try {
