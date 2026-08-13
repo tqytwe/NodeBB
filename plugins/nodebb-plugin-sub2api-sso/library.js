@@ -88,18 +88,35 @@ plugin.init = async function (params) {
 plugin.addPageRoutes = function (params) {
   const { router, middleware } = params
   const accountMiddlewares = [
+    middleware.autoLocale,
+    middleware.applyBlacklist,
+    middleware.authenticateRequest,
+    middleware.redirectToHomeIfBanned,
+    middleware.maintenanceMode,
+    middleware.pluginHooks,
     middleware.exposeUid,
     middleware.ensureLoggedIn,
     middleware.canViewUsers,
     middleware.checkAccountPermissions,
     middleware.buildAccountData,
+    middleware.pageView,
   ]
 
-  routeHelpers.setupPageRoute(
-    router,
+  // This account page must remain reachable immediately after OAuth login.
+  // NodeBB's generic setupPageRoute inserts registrationComplete before the
+  // plugin middlewares; OAuth callbacks create a temporary registration
+  // session even for already verified platform users. Mount this one page
+  // explicitly so that session marker cannot hide the wallet page.
+  router.get(
     '/user/:userslug/sub2api-wallet',
+    middleware.busyCheck,
     accountMiddlewares,
-    controllers.renderWallet
+    routeHelpers.tryRoute(controllers.renderWallet)
+  )
+  router.get(
+    '/api/user/:userslug/sub2api-wallet',
+    accountMiddlewares,
+    routeHelpers.tryRoute(controllers.renderWallet)
   )
 }
 
@@ -377,17 +394,6 @@ plugin.addAdminNav = async function (header) {
     name: 'Sub2API SSO',
   })
   return header
-}
-
-plugin.clearRegistrationInterstitial = async function ({ req, strategy, userData, error }) {
-  if (error || !req || !req.session || !userData) return
-  if (strategy !== 'sub2api' && strategy && strategy.name !== 'sub2api') return
-  if (!req.session.registration) return
-
-  delete req.session.registration
-  if (req.session.save) {
-    await new Promise((resolve) => req.session.save(resolve))
-  }
 }
 
 module.exports = plugin
