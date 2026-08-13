@@ -319,14 +319,21 @@ plugin.appendConfig = async function (config) {
   return config
 }
 
-plugin.addProfileMenu = async function (menu) {
-  menu.push({
+plugin.addProfileMenu = async function (data) {
+  // NodeBB v4 passes { uid, callerUID, links } to filter:user.profileMenu.
+  // Older NodeBB versions passed the links array directly.
+  const links = Array.isArray(data) ? data : data && data.links
+  if (!Array.isArray(links)) return data
+
+  links.push({
+    id: 'sub2api-wallet',
     route: '/sub2api-wallet',
     icon: 'fa-wallet',
     name: '[[sub2api-sso:sso-wallet]]',
     visibility: { self: true, other: false, moderator: false, globalMod: false, admin: false },
   })
-  return menu
+
+  return Array.isArray(data) ? links : data
 }
 
 plugin.addAdminNav = async function (header) {
