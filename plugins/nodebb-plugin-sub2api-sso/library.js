@@ -94,11 +94,7 @@ plugin.addPageRoutes = function (params) {
     middleware.redirectToHomeIfBanned,
     middleware.maintenanceMode,
     middleware.pluginHooks,
-    middleware.exposeUid,
     middleware.ensureLoggedIn,
-    middleware.canViewUsers,
-    middleware.checkAccountPermissions,
-    middleware.buildAccountData,
     middleware.pageView,
   ]
 
